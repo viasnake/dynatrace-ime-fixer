@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup mise tools
+        uses: jdx/mise-action@v4
+        with:
+          install: true
+          cache: true
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Build extension archives
+        run: npm run package
+
+      - name: Verify archive outputs
+        run: |
+          python3 - <<'PY'
+          import glob
+          import zipfile
+
+          patterns = [
+              "dist/dynatrace-ime-fixer-chrome-*.zip",
+              "dist/dynatrace-ime-fixer-firefox-*.zip",
+          ]
+
+          archives = []
+          for pattern in patterns:
+              matches = sorted(glob.glob(pattern))
+              if not matches:
+                  raise SystemExit(f"Missing archive for pattern: {pattern}")
+              archives.append(matches[-1])
+
+          for archive in archives:
+              with zipfile.ZipFile(archive) as zf:
+                  if "manifest.json" not in zf.namelist():
+                      raise SystemExit(f"manifest.json is missing in {archive}")
+
+          print("Verified archive files:")
+          for archive in archives:
+              print(archive)
+          PY
+
+      - name: Upload archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-zips
+          path: dist/*.zip
+          if-no-files-found: error

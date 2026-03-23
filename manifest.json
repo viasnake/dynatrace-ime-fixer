@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Dynatrace IME Enter Fix",
+  "version": "0.1.0",
+  "description": "Prevents accidental Enter submissions during IME composition on Dynatrace apps pages.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "dynatrace-ime-fixer@alflag.org",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ],
+        "optional": []
+      }
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.apps.dynatrace.com/*"
+      ],
+      "all_frames": true,
+      "js": [
+        "content/namespace.js",
+        "content/core.js",
+        "content/dom.js",
+        "content/runtime.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
+}
