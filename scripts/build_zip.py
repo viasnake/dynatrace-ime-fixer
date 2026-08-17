@@ -9,30 +9,62 @@ def load_manifest(manifest_path: Path) -> dict:
     return json.loads(manifest_path.read_text(encoding="utf-8"))
 
 
+def resolve_repo_file(repo_root: Path, relative: str | Path) -> Path:
+    relative_path = Path(relative)
+    current = repo_root
+
+    for part in relative_path.parts:
+        current = current / part
+
+        if current.is_symlink():
+            raise ValueError(f"symlink is not allowed: {relative}")
+
+    path = (repo_root / relative_path).resolve(strict=True)
+
+    if repo_root.resolve() not in path.parents:
+        raise ValueError(f"path escapes repository root: {relative}")
+
+    if not path.is_file():
+        raise ValueError(f"missing file: {relative}")
+
+    return path
+
+
 def resolve_files(repo_root: Path, manifest: dict) -> list[Path]:
-    files = [repo_root / "manifest.json"]
+    files = [resolve_repo_file(repo_root, "manifest.json")]
 
     for script in manifest.get("content_scripts", []):
         for relative in script.get("js", []):
-            relative_path = Path(relative)
-            path = repo_root / relative_path
-            current = repo_root
+            files.append(resolve_repo_file(repo_root, relative))
 
-            for part in relative_path.parts:
-                current = current / part
+    locale_root = repo_root / "_locales"
 
-                if current.is_symlink():
-                    raise ValueError(f"symlink is not allowed: {relative}")
+    if locale_root.is_symlink():
+        raise ValueError("symlink is not allowed: _locales")
 
-            path = path.resolve(strict=True)
+    if locale_root.exists():
+        if not locale_root.is_dir():
+            raise ValueError("_locales must be a directory")
 
-            if repo_root.resolve() not in path.parents:
-                raise ValueError(f"path escapes repository root: {relative}")
+        locale_dirs = sorted(locale_root.iterdir(), key=lambda path: path.name)
 
-            if not path.is_file():
-                raise ValueError(f"missing content script file: {relative}")
+        for locale_dir in locale_dirs:
+            if locale_dir.is_symlink():
+                raise ValueError(f"symlink is not allowed: {locale_dir.relative_to(repo_root)}")
 
-            files.append(path)
+            if not locale_dir.is_dir():
+                raise ValueError(f"locale entry must be a directory: {locale_dir.relative_to(repo_root)}")
+
+            messages_path = locale_dir / "messages.json"
+            relative_messages_path = messages_path.relative_to(repo_root)
+            files.append(resolve_repo_file(repo_root, relative_messages_path))
+
+        default_locale = manifest.get("default_locale")
+        if default_locale:
+            default_messages = locale_root / default_locale / "messages.json"
+
+            if not default_messages.is_file():
+                raise ValueError(f"missing default locale messages: {default_messages.relative_to(repo_root)}")
 
     unique_files = []
     seen = set()

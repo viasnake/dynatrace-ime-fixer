@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "Dynatrace IME Enter Fix"
+  },
+  "extDescription": {
+    "message": "防止在 Dynatrace Assist 中輸入或組字時意外送出內容。"
+  }
+}

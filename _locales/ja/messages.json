@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "Dynatrace IME Enter Fix"
+  },
+  "extDescription": {
+    "message": "Dynatrace Assist で文字を入力・変換しているときの意図しない送信を防ぎます。"
+  }
+}

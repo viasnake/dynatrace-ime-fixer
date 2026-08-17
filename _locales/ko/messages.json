@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "Dynatrace IME Enter Fix"
+  },
+  "extDescription": {
+    "message": "Dynatrace Assist에서 문자를 입력하거나 조합하는 중 의도하지 않은 전송을 방지합니다."
+  }
+}
